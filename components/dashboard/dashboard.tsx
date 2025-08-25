@@ -5,11 +5,12 @@ import StatsCard from './stats-card';
 import TrendChart from './trend-chart';
 import TrendLineChart from './trend-line-chart';
 import StatusBreakdownCard from './status-breakdown-card';
-import CollectionBreakdownCard from './collection-breakdown-card';
+import IndustryDepartmentBreakdownCard from './industry-department-breakdown-card';
+import DepartmentBreakdownCard from './department-breakdown-card';
 import SalesOrdersTable from './sales-orders-table';
 import RefreshButton from '@/components/ui/refresh-button';
 
-import { useSalesDashboardStats, useSalesOrders, useFilteredBranchRevenue, useFilteredDashboardStats, useFilteredDataByBranch, useFilteredStatusBreakdown, useFilteredCollectionBreakdown, useMonthlyRevenue, useFilteredMonthlyRevenue } from '@/hooks/useSalesData';
+import { useSalesDashboardStats, useSalesOrders, useFilteredBranchRevenue, useFilteredDashboardStats, useFilteredDataByBranch, useFilteredStatusBreakdown, useFilteredIndustryDepartmentBreakdown, useFilteredDepartmentBreakdown, useMonthlyRevenue, useFilteredMonthlyRevenue } from '@/hooks/useSalesData';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
@@ -19,14 +20,17 @@ const Dashboard = () => {
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
-  const [yearFilter, setYearFilter] = useState<'all' | '2025'>('all');
+  const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
+  const [selectedCostCenter, setSelectedCostCenter] = useState<string | null>(null);
+  const [yearFilter, setYearFilter] = useState<'2024' | '2025'>('2025');
   const { data: dashboardStats, isLoading: statsLoading, error: statsError } = useSalesDashboardStats();
   const { data: salesOrders, isLoading: ordersLoading } = useSalesOrders();
   const { data: monthlyRevenue, isLoading: monthlyRevenueLoading } = useMonthlyRevenue();
-  const filteredData = useFilteredDataByBranch(salesOrders, selectedBranch, selectedStatus, selectedCollection, selectedMonth, yearFilter);
-  const filteredStatusData = useFilteredStatusBreakdown(salesOrders, selectedStatus, selectedCollection, selectedBranch, selectedMonth, yearFilter);
-  const filteredCollectionData = useFilteredCollectionBreakdown(salesOrders, selectedStatus, selectedCollection, selectedBranch, selectedMonth, yearFilter);
-  const filteredMonthlyRevenue = useFilteredMonthlyRevenue(salesOrders, selectedStatus, selectedCollection, selectedBranch, selectedMonth, yearFilter);
+  const filteredData = useFilteredDataByBranch(salesOrders, selectedBranch, selectedStatus, selectedCollection, selectedMonth, yearFilter, selectedDepartment, selectedCostCenter);
+  const filteredStatusData = useFilteredStatusBreakdown(salesOrders, selectedStatus, selectedCollection, selectedBranch, selectedMonth, yearFilter, selectedDepartment, selectedCostCenter);
+  const filteredIndustryDepartmentData = useFilteredIndustryDepartmentBreakdown(salesOrders, selectedStatus, selectedCollection, selectedBranch, selectedMonth, yearFilter, selectedDepartment, selectedCostCenter);
+  const filteredDepartmentData = useFilteredDepartmentBreakdown(salesOrders, selectedStatus, selectedCollection, selectedBranch, selectedMonth, yearFilter, selectedDepartment, selectedCostCenter);
+  const filteredMonthlyRevenue = useFilteredMonthlyRevenue(salesOrders, selectedStatus, selectedCollection, selectedBranch, selectedMonth, yearFilter, selectedDepartment, selectedCostCenter);
   const filteredBranchRevenue = useFilteredBranchRevenue(salesOrders, selectedStatus, selectedCollection, selectedMonth, yearFilter);
 
   const handleRefresh = () => {
@@ -35,7 +39,9 @@ const Dashboard = () => {
     setSelectedCollection(null);
     setSelectedBranch(null);
     setSelectedMonth(null);
-    setYearFilter('all');
+    setSelectedDepartment(null);
+    setSelectedCostCenter(null);
+    setYearFilter('2025');
     
     // Refresh data
     queryClient.invalidateQueries({ queryKey: ['salesDashboardStats'] });
@@ -58,8 +64,20 @@ const Dashboard = () => {
     setSelectedMonth(selectedMonth === month ? null : month);
   };
 
-  const handleYearFilterChange = (checked: boolean) => {
-    setYearFilter(checked ? '2025' : 'all');
+  const handleDepartmentClick = (department: string) => {
+    setSelectedDepartment(selectedDepartment === department ? null : department);
+  };
+
+  const handleCostCenterClick = (costCenter: string) => {
+    setSelectedCostCenter(selectedCostCenter === costCenter ? null : costCenter);
+  };
+
+  const handleDepartmentCategoryClick = (departmentCategory: string) => {
+    setSelectedCostCenter(selectedCostCenter === departmentCategory ? null : departmentCategory);
+  };
+
+  const handleYearFilterChange = (year: '2024' | '2025') => {
+    setYearFilter(year);
   };
 
   if (statsLoading || ordersLoading || monthlyRevenueLoading) {
@@ -86,28 +104,28 @@ const Dashboard = () => {
     {
       title: 'Total Orders',
       value: filteredData.totalOrders.toString(),
-      description: selectedStatus || selectedCollection || selectedBranch || selectedMonth ? 'Filtered' : 'All time',
+      description: selectedStatus || selectedCollection || selectedBranch || selectedMonth || selectedDepartment || selectedCostCenter ? 'Filtered' : 'All time',
       icon: ShoppingCart,
       trend: { value: 0, isPositive: true }
     },
     {
       title: 'Non-Completed Orders',
       value: filteredData.nonCompletedOrders.toString(),
-      description: selectedStatus || selectedCollection || selectedBranch || selectedMonth ? 'Filtered' : 'Not completed',
+      description: selectedStatus || selectedCollection || selectedBranch || selectedMonth || selectedDepartment || selectedCostCenter ? 'Filtered' : 'Not completed',
       icon: Package,
       trend: { value: 0, isPositive: true }
     },
     {
       title: 'Total Revenue',
       value: `Rp${filteredData.totalRevenue.toLocaleString('id-ID')}`,
-      description: selectedStatus || selectedCollection || selectedBranch || selectedMonth ? 'Filtered' : 'All orders',
+      description: selectedStatus || selectedCollection || selectedBranch || selectedMonth || selectedDepartment || selectedCostCenter ? 'Filtered' : 'All orders',
       icon: DollarSign,
       trend: { value: 0, isPositive: true }
     },
     {
       title: 'Unearned Revenue',
       value: `Rp${filteredData.unearnedRevenue.toLocaleString('id-ID')}`,
-      description: selectedStatus || selectedCollection || selectedBranch || selectedMonth ? 'Filtered' : 'Non-completed orders',
+      description: selectedStatus || selectedCollection || selectedBranch || selectedMonth || selectedDepartment || selectedCostCenter ? 'Filtered' : 'Non-completed orders',
       icon: TrendingUp,
       trend: { value: 0, isPositive: true }
     }
@@ -118,22 +136,34 @@ const Dashboard = () => {
              {/* Header */}
        <div className="flex items-center justify-between">
          <div>
-           <h1 className="text-3xl font-bold">Sales Dashboard</h1>
+           <h1 className="text-3xl font-bold">Omzet Dashboard</h1>
            <p className="text-muted-foreground">
 
            </p>
          </div>
          <div className="flex items-center gap-4">
-           <button
-             onClick={() => handleYearFilterChange(yearFilter === '2025' ? false : true)}
-             className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-               yearFilter === '2025' 
-                 ? 'bg-primary text-primary-foreground' 
-                 : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-             }`}
-           >
-             {yearFilter === '2025' ? '2025' : 'All'}
-           </button>
+                                   <div className="flex gap-2">
+              <button
+                onClick={() => handleYearFilterChange('2024')}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  yearFilter === '2024'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                }`}
+              >
+                2024
+              </button>
+              <button
+                onClick={() => handleYearFilterChange('2025')}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  yearFilter === '2025'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                }`}
+              >
+                2025
+              </button>
+            </div>
            <RefreshButton
              onRefresh={handleRefresh}
              isLoading={statsLoading || ordersLoading || monthlyRevenueLoading}
@@ -152,6 +182,13 @@ const Dashboard = () => {
             trend={stat.trend}
           />
         ))}  
+        <div className="lg:col-span-2">
+          <StatusBreakdownCard
+            statusBreakdown={filteredStatusData.statusBreakdown}
+            totalOrders={filteredStatusData.totalOrders}
+            onStatusClick={handleStatusClick}
+          />
+        </div> 
       </div>
 
       {/* Charts and Analytics */}
@@ -170,46 +207,47 @@ const Dashboard = () => {
         <div className="lg:col-span-5">
                      <TrendLineChart
              title="Monthly Revenue Trend"
-             data={selectedStatus || selectedCollection || selectedBranch || yearFilter === '2025' ? filteredMonthlyRevenue : (monthlyRevenue || [])}
+                           data={filteredMonthlyRevenue}
              onMonthClick={handleMonthClick}
              selectedMonth={selectedMonth}
            />
         </div>
-        
       </div>
 
       {/* Sales Orders and Breakdown Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-8 gap-4">
-        {/* Sales Orders Table - Takes 2 columns */}
-        <div className="lg:col-span-6">
-                     <SalesOrdersTable
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Sales Orders Table - Takes 5 columns */}
+        <div className="lg:col-span-5">
+          <SalesOrdersTable
              orders={salesOrders || []}
              isLoading={ordersLoading}
              selectedStatus={selectedStatus}
              selectedCollection={selectedCollection}
              selectedBranch={selectedBranch}
              selectedMonth={selectedMonth}
+             selectedDepartment={selectedDepartment}
+             selectedCostCenter={selectedCostCenter}
              yearFilter={yearFilter}
              onStatusClick={handleStatusClick}
              onClearAllFilters={handleRefresh}
-           />
+          />
           
         </div>
-        {/* Right Side Cards - Stacked vertically */}
-        <div className="space-y-3 lg:col-span-2">
-            <CollectionBreakdownCard
-              collectionBreakdown={filteredCollectionData}
-              onCollectionClick={handleCollectionClick}
-              selectedCollection={selectedCollection}
+        <div className="lg:col-span-3">
+          <DepartmentBreakdownCard
+              departmentBreakdown={filteredDepartmentData}
+              onDepartmentClick={handleDepartmentCategoryClick}
+              selectedDepartment={selectedCostCenter}
             />
-            <div>
-              <StatusBreakdownCard
-                statusBreakdown={filteredStatusData.statusBreakdown}
-                totalOrders={filteredStatusData.totalOrders}
-                onStatusClick={handleStatusClick}
-              />
-            </div>
-          </div>
+        </div>
+        {/* Right Side Cards - Stacked vertically */}
+        <div className="space-y-3 lg:col-span-4">
+          <IndustryDepartmentBreakdownCard
+            departmentBreakdown={filteredIndustryDepartmentData}
+            onDepartmentClick={handleDepartmentClick}
+            selectedDepartment={selectedDepartment}
+          />
+        </div>
       </div>
     </div>
   );

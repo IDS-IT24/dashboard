@@ -6,8 +6,8 @@ import Providers from './providers'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Sales Dashboard',
-  description: 'Comprehensive analytics for your sales orders',
+  title: 'Intidaya Dashboard',
+  description: 'Data Dashboard from All Software',
 }
 
 export default function RootLayout({

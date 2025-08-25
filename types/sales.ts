@@ -14,6 +14,7 @@ export interface SalesOrder {
   total_amount: number;
   cost_center?: string;
   collection?: string;
+  department?: string;
   items?: Array<{
     product_name: string;
     quantity: number;

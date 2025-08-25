@@ -1,12 +1,17 @@
 'use client';
 
+import { useState } from 'react';
 import { useAuth } from './auth-context';
 import { LoginForm } from './login-form';
-import Dashboard from '@/components/dashboard/dashboard';
 import Sidebar from '@/components/layout/sidebar';
 
-export function ProtectedRoute() {
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+}
+
+export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   if (isLoading) {
     return (
@@ -22,9 +27,12 @@ export function ProtectedRoute() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 overflow-auto">
-        <Dashboard />
+      <Sidebar 
+        isCollapsed={isSidebarCollapsed} 
+        onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
+      />
+      <main className={`flex-1 overflow-auto transition-all duration-300 ${isSidebarCollapsed ? 'ml-16' : 'ml-0'}`}>
+        {children}
       </main>
     </div>
   );

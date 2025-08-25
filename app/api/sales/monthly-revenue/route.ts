@@ -34,20 +34,29 @@ export async function GET(request: NextRequest) {
       }
     });
     
-    // Convert to array and sort by date
-    const monthlyData = Array.from(monthlyRevenue.entries())
-      .map(([key, value]) => {
-        const [year, month] = key.split('-');
-        const date = new Date(parseInt(year), parseInt(month) - 1);
-        return {
-          month: date.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short' 
-          }),
-          revenue: value,
-          date: date.getTime() // for sorting
-        };
-      })
+    // Create a complete year of months (January to December)
+    const completeMonthlyData = [];
+    const currentYear = new Date().getFullYear();
+    
+    for (let month = 1; month <= 12; month++) {
+      const monthKey = `${currentYear}-${String(month).padStart(2, '0')}`;
+      const date = new Date(currentYear, month - 1);
+      const monthName = date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short' 
+      });
+      
+      const revenue = monthlyRevenue.get(monthKey) || 0;
+      
+      completeMonthlyData.push({
+        month: monthName,
+        revenue: revenue,
+        date: date.getTime() // for sorting
+      });
+    }
+    
+    // Sort by date to ensure proper order
+    const monthlyData = completeMonthlyData
       .sort((a, b) => a.date - b.date)
       .map(({ month, revenue }) => ({ month, revenue }));
     

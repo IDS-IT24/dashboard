@@ -27,25 +27,24 @@ export function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Access your sales dashboard
-          </p>
-        </div>
-        
+    <div 
+      className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-cover bg-center bg-no-repeat relative"
+      style={{
+        backgroundImage: 'url(/images/login-bg.png)'
+      }}
+    >
+      {/* Dark overlay for better readability */}
+      <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+      
+      <div className="max-w-md w-80 space-y-8 relative z-10">
         <Card>
           <CardHeader>
-            <CardTitle>Login</CardTitle>
-            <CardDescription>
+            <CardTitle className='text-2xl font-bold text-center'>Login</CardTitle>
+            <CardDescription className='text-center text-xs'>
               Enter your credentials to access the dashboard
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className='mt-2'>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -79,6 +78,9 @@ export function LoginForm() {
                   className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                   placeholder="Enter your password"
                 />
+                <p className='text-xs text-gray-500 mt-2'>
+                  Please inform IT-Team to get the access
+                </p>
               </div>
 
               {error && (
@@ -87,11 +89,11 @@ export function LoginForm() {
                 </div>
               )}
 
-              <div>
+              <div className='mt-4'>
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                  className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                 >
                   {isLoading ? 'Signing in...' : 'Sign in'}
                 </Button>

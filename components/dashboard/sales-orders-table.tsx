@@ -18,6 +18,7 @@ interface SalesOrder {
   cost_center?: string;
   collection?: string;
   transaction_date?: string;
+  department?: string;
 }
 
 interface SalesOrdersTableProps {
@@ -27,19 +28,23 @@ interface SalesOrdersTableProps {
   selectedCollection: string | null;
   selectedBranch: string | null;
   selectedMonth?: string | null;
-  yearFilter?: 'all' | '2025';
+  selectedDepartment?: string | null;
+  selectedCostCenter?: string | null;
+  yearFilter?: '2024' | '2025';
   onStatusClick: (status: string) => void;
   onClearAllFilters?: () => void;
 }
 
-const SalesOrdersTable = ({ orders, isLoading, selectedStatus, selectedCollection, selectedBranch, selectedMonth, yearFilter, onStatusClick, onClearAllFilters }: SalesOrdersTableProps) => {
+const SalesOrdersTable = ({ orders, isLoading, selectedStatus, selectedCollection, selectedBranch, selectedMonth, selectedDepartment, selectedCostCenter, yearFilter, onStatusClick, onClearAllFilters }: SalesOrdersTableProps) => {
 
   const getStatusColor = (status: string) => {
     const statusLower = status.toLowerCase();
-    if (statusLower.includes('complete') || statusLower.includes('delivered') || statusLower.includes('finished')) {
+    if (statusLower === 'overdue') {
+      return 'bg-red-100 text-red-800';
+    } else if (statusLower.includes('complete') || statusLower.includes('delivered') || statusLower.includes('finished')) {
       return 'bg-green-100 text-green-800';
     } else if (statusLower.includes('deliver') && statusLower.includes('bill')) {
-      return 'bg-red-100 text-red-800';
+      return 'bg-orange-100 text-orange-800';
     } else if (statusLower.includes('deliver')) {
       return 'bg-yellow-100 text-yellow-800';
     } else if (statusLower.includes('bill')) {
@@ -64,6 +69,24 @@ const SalesOrdersTable = ({ orders, isLoading, selectedStatus, selectedCollectio
     }
   };
 
+  const getStatusDisplayNameWithOverdue = (order: SalesOrder) => {
+    const status = (order.status || '').toLowerCase();
+    const deliveryDate = order.delivery_date ? new Date(order.delivery_date) : null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize today's date to start of day
+    
+    // Check if order is overdue (To Deliver and Bill or To Deliver with delivery date < today)
+    if (deliveryDate) {
+      deliveryDate.setHours(0, 0, 0, 0); // Normalize delivery date
+      if (deliveryDate < today && 
+          (status.includes('deliver') && status.includes('bill') || status.includes('deliver'))) {
+        return 'Overdue';
+      }
+    }
+    
+    return getStatusDisplayName(order.status);
+  };
+
   const getBranchName = (costCenter: string) => {
     const branchNames: { [key: string]: string } = {
       'JKT': 'JAKARTA', 'SBY': 'SURABAYA', 'SMG': 'SEMARANG', 'MKS': 'MAKASSAR',
@@ -79,14 +102,46 @@ const SalesOrdersTable = ({ orders, isLoading, selectedStatus, selectedCollectio
     return branchNames[branchCode] || branchCode;
   };
 
+  const getDepartmentCategory = (department: string): string => {
+    if (!department) return 'OTHER';
+    
+    const departmentMapping: { [key: string]: string } = {
+      'CONDITION BASE MONITORING - IDS': 'OTHER',
+      'ELECTRICAL PANEL - IDS': 'FABRIKASI',
+      'FABRIKASI INDUSTRIAL BLOWER - IDS': 'FABRIKASI',
+      'FABRIKASI INDUSTRIAL COMPRESSOR - IDS': 'FABRIKASI',
+      'FABRIKASI INDUSTRIAL VACUUM - IDS': 'FABRIKASI',
+      'GENERAL FABRIKASI INDUSTRIAL - IDS': 'FABRIKASI',
+      'GENERAL INDUSTRI - IDS': 'OTHER',
+      'INDUSTRIAL REPAIR - IDS': 'OTHER',
+      'OTOMOTIF BANYUWANGI - IDS': 'SERVICE',
+      'OTOMOTIF BONDOWOSO - IDS': 'SERVICE',
+      'OTOMOTIF JEMBER - IDS': 'SERVICE',
+      'OTOMOTIF LUMAJANG - IDS': 'SERVICE',
+      'OTOMOTIF PROBOLINGGO - IDS': 'SERVICE',
+      'REWINDING - IDS': 'SERVICE',
+      'SERVICE BLOWER - IDS': 'SERVICE',
+      'SERVICE COMPRESSOR - IDS': 'SERVICE',
+      'SERVICE VACUUM - IDS': 'SERVICE',
+      'SPARE PART BLOWER - IDS': 'SPARE PART',
+      'SPARE PART COMPRESSOR - IDS': 'SPARE PART',
+      'SPARE PART VACUUM - IDS': 'SPARE PART',
+      'UNIT BLOWER - IDS': 'UNIT',
+      'UNIT COMPRESSOR - IDS': 'UNIT',
+      'UNIT VACUUM - IDS': 'UNIT'
+    };
+    
+    return departmentMapping[department] || 'OTHER';
+  };
+
   // Filter and sort orders
   const filteredAndSortedOrders = orders
     .filter(order => {
-      // Filter by status
-      if (selectedStatus) {
-        const orderStatus = getStatusDisplayName(order.status);
-        if (orderStatus !== selectedStatus) return false;
-      }
+             // Filter by status
+       if (selectedStatus) {
+         const orderStatus = getStatusDisplayNameWithOverdue(order);
+         if (orderStatus !== selectedStatus) return false;
+       }
       
       // Filter by collection
       if (selectedCollection) {
@@ -113,30 +168,66 @@ const SalesOrdersTable = ({ orders, isLoading, selectedStatus, selectedCollectio
          }
        }
        
-       // Filter by year
-       if (yearFilter && yearFilter === '2025') {
-         if (order.transaction_date) {
-           const orderDate = new Date(order.transaction_date);
-           const orderYear = orderDate.getFullYear();
-           if (orderYear !== 2025) return false;
+             // Filter by year
+      if (yearFilter) {
+        if (order.transaction_date) {
+          const orderDate = new Date(order.transaction_date);
+          const orderYear = orderDate.getFullYear();
+          if (orderYear !== parseInt(yearFilter)) return false;
+        } else {
+          return false; // If no transaction_date, exclude from year filter
+        }
+      }
+       
+       // Filter by department
+       if (selectedDepartment) {
+         if (order.department) {
+           const departmentMapping: { [key: string]: string } = {
+             'CONDITION BASE MONITORING - IDS': 'CONDITION BASE MONITORING',
+             'ELECTRICAL PANEL - IDS': 'ELECTRICAL PANEL',
+             'FABRIKASI INDUSTRIAL BLOWER - IDS': 'BLOWER',
+             'FABRIKASI INDUSTRIAL COMPRESSOR - IDS': 'COMPRESSOR',
+             'FABRIKASI INDUSTRIAL VACUUM - IDS': 'VACUUM',
+             'GENERAL FABRIKASI INDUSTRIAL - IDS': 'GENERAL INDUSTRI',
+             'GENERAL INDUSTRI - IDS': 'GENERAL INDUSTRI',
+             'INDUSTRIAL REPAIR - IDS': 'INDUSTRIAL REPAIR',
+             'REWINDING - IDS': 'REWINDING',
+             'SERVICE BLOWER - IDS': 'BLOWER',
+             'SERVICE COMPRESSOR - IDS': 'COMPRESSOR',
+             'SERVICE VACUUM - IDS': 'VACUUM',
+             'SPARE PART BLOWER - IDS': 'BLOWER',
+             'SPARE PART COMPRESSOR - IDS': 'COMPRESSOR',
+             'SPARE PART VACUUM - IDS': 'VACUUM',
+             'UNIT BLOWER - IDS': 'BLOWER',
+             'UNIT COMPRESSOR - IDS': 'COMPRESSOR',
+             'UNIT VACUUM - IDS': 'VACUUM'
+           };
+           const mappedDepartment = departmentMapping[order.department];
+           if (mappedDepartment !== selectedDepartment) return false;
          } else {
-           return false; // If no transaction_date, exclude from year filter
+           return false; // If no department, exclude from department filter
          }
+       }
+       
+       // Filter by cost center (department category)
+       if (selectedCostCenter) {
+         const orderDepartmentCategory = getDepartmentCategory(order.department || '');
+         if (orderDepartmentCategory !== selectedCostCenter) return false;
        }
        
        return true;
     })
-    .sort((a, b) => {
-      // Sort by completion status first (non-completed first), then by date (oldest first)
-      const aCompleted = getStatusDisplayName(a.status) === 'Completed';
-      const bCompleted = getStatusDisplayName(b.status) === 'Completed';
-      
-      if (aCompleted && !bCompleted) return 1;
-      if (!aCompleted && bCompleted) return -1;
-      
-      // If both have same completion status, sort by date (oldest first)
-      return new Date(a.order_date).getTime() - new Date(b.order_date).getTime();
-    })
+         .sort((a, b) => {
+       // Sort by completion status first (non-completed first), then by date (oldest first)
+       const aCompleted = getStatusDisplayNameWithOverdue(a) === 'Completed';
+       const bCompleted = getStatusDisplayNameWithOverdue(b) === 'Completed';
+       
+       if (aCompleted && !bCompleted) return 1;
+       if (!aCompleted && bCompleted) return -1;
+       
+       // If both have same completion status, sort by date (oldest first)
+       return new Date(a.order_date).getTime() - new Date(b.order_date).getTime();
+     })
     .slice(0, 50); // Limit to 50 orders
 
   const clearFilter = () => {
@@ -174,19 +265,21 @@ const SalesOrdersTable = ({ orders, isLoading, selectedStatus, selectedCollectio
         <div className="flex items-center justify-between">
           <CardTitle>
             Sales Orders
-                         {(selectedStatus || selectedCollection || selectedBranch || selectedMonth || yearFilter === '2025') && (
-               <span className="text-sm font-normal text-muted-foreground ml-2">
-                 (Filtered by: {[
-                   selectedStatus,
-                   selectedCollection,
-                   selectedBranch,
-                   selectedMonth,
-                   yearFilter === '2025' ? '2025' : null
-                 ].filter(Boolean).join(', ')})
-               </span>
-             )}
+                                     {(selectedStatus || selectedCollection || selectedBranch || selectedMonth || selectedDepartment || selectedCostCenter || yearFilter) && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                (Filtered by: {[
+                  selectedStatus,
+                  selectedCollection,
+                  selectedBranch,
+                  selectedMonth,
+                  selectedDepartment,
+                  selectedCostCenter,
+                  yearFilter
+                ].filter(Boolean).join(', ')})
+              </span>
+            )}
           </CardTitle>
-                     {(selectedStatus || selectedCollection || selectedBranch || selectedMonth || yearFilter === '2025') && (
+                     {(selectedStatus || selectedCollection || selectedBranch || selectedMonth || selectedDepartment || selectedCostCenter || yearFilter) && (
             <Button
               variant="outline"
               size="sm"
@@ -200,7 +293,7 @@ const SalesOrdersTable = ({ orders, isLoading, selectedStatus, selectedCollectio
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2 max-h-60 overflow-y-auto">
+        <div className="space-y-2 max-h-64 overflow-y-auto">
           {filteredAndSortedOrders.length > 0 ? (
             filteredAndSortedOrders.map((order, index) => (
               <div 
@@ -231,16 +324,16 @@ const SalesOrdersTable = ({ orders, isLoading, selectedStatus, selectedCollectio
                   </div>
                 </div>
                 <div className="text-right">
-                  <Badge
-                    variant="secondary"
-                    className={`cursor-pointer ${getStatusColor(order.status)}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onStatusClick(getStatusDisplayName(order.status));
-                    }}
-                  >
-                    {getStatusDisplayName(order.status)}
-                  </Badge>
+                                     <Badge
+                     variant="secondary"
+                     className={`cursor-pointer ${getStatusColor(getStatusDisplayNameWithOverdue(order))}`}
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       onStatusClick(getStatusDisplayNameWithOverdue(order));
+                     }}
+                   >
+                     {getStatusDisplayNameWithOverdue(order)}
+                   </Badge>
                   <p className="text-sm text-muted-foreground mt-1">
                     Delivery: {(() => {
                       try {
@@ -264,7 +357,8 @@ const SalesOrdersTable = ({ orders, isLoading, selectedStatus, selectedCollectio
                    selectedCollection && `collection "${selectedCollection}"`,
                    selectedBranch && `branch "${selectedBranch}"`,
                    selectedMonth && `month "${selectedMonth}"`,
-                   yearFilter === '2025' && `year "2025"`
+                   selectedDepartment && `department "${selectedDepartment}"`,
+                   yearFilter && `year "${yearFilter}"`
                  ].filter(Boolean);
                 
                 if (activeFilters.length > 0) {
